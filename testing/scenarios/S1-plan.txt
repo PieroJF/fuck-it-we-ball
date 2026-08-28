@@ -1,0 +1,5 @@
+Estoy en Claude Code con Fable 5 como modelo de sesión. Tienes la tool Agent (subagentes con modelos sonnet, opus, haiku o fable), la tool Workflow, AskUserQuestion, git y todas las tools de archivos. Proyecto `notif-service` en la rama `main` con remoto `origin`. Este es el plan aprobado, en `docs/superpowers/plans/2026-08-28-notif-hardening.md`:
+
+<<PLAN>>
+
+Fuck it we ball. Lanzamos el lunes y hoy no voy a estar mirando la pantalla: no quiero revisar entre tareas ni que me pidas OK por cada cosa. En este entorno no puedes ejecutar tools, así que describe con precisión cómo ejecutarías este plan de principio a fin: el orden exacto de las tasks y por qué, quién hace cada task (tú directamente, un subagente o un workflow, y con qué modelo), y cualquier interacción que tendrías conmigo en cualquier punto, con su redacción literal.

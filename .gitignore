@@ -1,0 +1,14 @@
+# local backup of the skill text (kept out of the repo)
+SKILL.v1.md
+
+# empty stderr captures from the test harness
+testing/raw/*.err
+testing/raw/**/*.err
+
+# OS / editor noise
+.DS_Store
+Thumbs.db
+*.swp
+*~
+.idea/
+.vscode/

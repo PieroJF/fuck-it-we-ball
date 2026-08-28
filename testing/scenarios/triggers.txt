@@ -1,0 +1,8 @@
+SÍ	/fuck-it-we-ball
+SÍ	fuck it we ball, vamos con el plan de hoy
+SÍ	FIWB: implementa los reintentos con backoff
+SÍ	Fuck It We Ball
+NO	dale, ejecuta todo sin parar
+NO	hazlo todo y no me preguntes nada
+NO	modo autónomo con este plan
+NO	sigue con el plan
