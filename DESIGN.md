@@ -363,7 +363,8 @@ Por qué: plantillas de dispatch y citas a SDD/writing-plans/workflow-resilience
 Abre: hoja
 
 ### 22 Ubicación / repo de la skill — rollout
-Elegido: solo local `~/.claude/skills/fuck-it-we-ball/` con `SKILL.md`, `DESIGN.md` (spec + este decision-log), `PLAN.md`, `testing/` (convención de handoff), sin `git init`. Backup v1 del SKILL.md al cerrar GREEN.   [recomendado]
+**Superseded 2026-08-28 (misma sesión):** el usuario pidió publicar → repo público `github.com/PieroJF/fuck-it-we-ball` (README, MIT, .gitignore; `SKILL.v1.md` excluido).
+Elegido originalmente: solo local `~/.claude/skills/fuck-it-we-ball/` con `SKILL.md`, `DESIGN.md` (spec + este decision-log), `PLAN.md`, `testing/` (convención de handoff), sin `git init`. Backup v1 del SKILL.md al cerrar GREEN.   [recomendado]
 Por qué: cero superficie pública hasta uso real; publicar después cuesta un init+push.
 Abre: hoja
 
