@@ -85,11 +85,11 @@ git commit -m "test(fiwb): add Codex runtime contract RED"
 - Consumes: FIWB active state and Windows/Linux infrastructure-directory candidates.
 - Produces: unambiguous deploy precedence and a readable project-context source on both hosts.
 
-- [ ] **Step 1: Confirm the safety and locator assertions fail**
-- [ ] **Step 2: Add an explicit FIWB exception to the generic deploy rule in both global instruction files**
-- [ ] **Step 3: Add ordered Linux/Windows candidates plus a bounded fallback search to project-context**
-- [ ] **Step 4: Verify Bash `cat` reads the resolved Windows snapshot**
-- [ ] **Step 5: Run contract tests and compare the two global clauses**
+- [x] **Step 1: Confirm the safety and locator assertions fail**
+- [x] **Step 2: Add an explicit FIWB exception to the generic deploy rule in both global instruction files**
+- [x] **Step 3: Add ordered Linux/Windows candidates plus a bounded fallback search to project-context**
+- [x] **Step 4: Verify Bash `cat` reads the resolved Windows snapshot**
+- [x] **Step 5: Run contract tests and compare the two global clauses**
 
 ### Task 4: Distribution and documentation [sev:med] [depends: T1, T2]
 
@@ -125,3 +125,9 @@ git commit -m "test(fiwb): add Codex runtime contract RED"
 - [ ] **Step 4: Rerun the existing Claude trigger/scenario regression harness**
 - [ ] **Step 5: Run final independent review, fix confirmed findings, and record exact results**
 - [ ] **Step 6: Commit each verified task separately and push directly only after every hard-stop guard is satisfied**
+
+## FIWB run-log
+
+| T | tier | modo | modelo | commit | estado | desviaciones / pregunta |
+|---|---:|---|---|---|---|---|
+| T3 | 3 | SDD | gpt-5.6-terra | external config + bookkeeping | done | 0 |
