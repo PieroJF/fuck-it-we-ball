@@ -5,7 +5,8 @@ param(
     [string]$ClaudeInstructionsPath = (Join-Path $env:USERPROFILE '.claude\CLAUDE.md'),
     [string]$ProjectContextPath = (Join-Path $env:USERPROFILE '.agents\skills\project-context\SKILL.md'),
     [string]$ClaudeProjectContextPath = (Join-Path $env:USERPROFILE '.claude\skills\project-context\SKILL.md'),
-    [string]$ClaudeSkillPath = (Join-Path $env:USERPROFILE '.claude\skills\fuck-it-we-ball\SKILL.md')
+    [string]$ClaudeSkillPath = (Join-Path $env:USERPROFILE '.claude\skills\fuck-it-we-ball\SKILL.md'),
+    [string]$CodexSkillPath = (Join-Path $env:USERPROFILE '.agents\skills\fuck-it-we-ball\SKILL.md')
 )
 
 $ErrorActionPreference = 'Stop'
@@ -251,10 +252,16 @@ if ((Test-Path -LiteralPath $gitBashCandidate) -and (Test-Path -LiteralPath $sna
 }
 Add-ContractResult 'project-context-windows-locator' ($locatorDeclared -and $locatorCopiesMatch -and $catWorks) 'Both project-context copies declare the verified candidate and bounded fallback, and Git Bash cat reads it.'
 
-$copiesMatch = (Test-Path -LiteralPath $ClaudeSkillPath) -and
-    ((Get-FileHash -Algorithm SHA256 -LiteralPath $skillPath).Hash -eq
-     (Get-FileHash -Algorithm SHA256 -LiteralPath $ClaudeSkillPath).Hash)
-Add-ContractResult 'installed-copy-parity' $copiesMatch 'The .agents and .claude installed skill copies are byte-identical.'
+$copiesMatch = $false
+if ((Test-Path -LiteralPath $CodexSkillPath) -and (Test-Path -LiteralPath $ClaudeSkillPath)) {
+    $worktreeSkillHash = (Get-FileHash -Algorithm SHA256 -LiteralPath $skillPath).Hash
+    $codexSkillHash = (Get-FileHash -Algorithm SHA256 -LiteralPath $CodexSkillPath).Hash
+    $claudeSkillHash = (Get-FileHash -Algorithm SHA256 -LiteralPath $ClaudeSkillPath).Hash
+    $copiesMatch = $worktreeSkillHash -eq $codexSkillHash -and
+        $codexSkillHash -eq $claudeSkillHash -and
+        $worktreeSkillHash -eq $claudeSkillHash
+}
+Add-ContractResult 'installed-copy-parity' $copiesMatch 'The worktree, .agents, and .claude skill copies are byte-identical.'
 
 $results | ForEach-Object {
     $status = if ($_.Passed) { 'PASS' } else { 'FAIL' }
