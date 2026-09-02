@@ -12,3 +12,6 @@ Thumbs.db
 *~
 .idea/
 .vscode/
+
+# local isolated implementation worktrees
+.worktrees/
