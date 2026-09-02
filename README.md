@@ -1,9 +1,9 @@
 # 🏀 fuck-it-we-ball
 
-> Skill de **corrida autónoma de planes** para [Claude Code](https://claude.com/claude-code).
+> Skill de **corrida autónoma de planes** para [Claude Code](https://claude.com/claude-code) y Codex.
 > Autonomous plan-execution skill: takes a plan, orders it by urgency × unblocking power × severity, runs it end to end with subagents, and stops only for the decisions an AI must not take alone.
 
-Tienes un plan aprobado (o un backlog en `SESSION_HANDOFF.md`) y quieres que Claude **lo ejecute entero sin pedirte OK entre tareas** — pero sin que despliegue a producción, borre datos o meta Redis por su cuenta. Esta skill es ese contrato, y viene con la evidencia de que se cumple bajo presión.
+Tienes un plan aprobado (o un backlog en `SESSION_HANDOFF.md`) y quieres que el runtime **lo ejecute entero sin pedirte OK entre tareas** — pero sin que despliegue a producción, borre datos o meta Redis por su cuenta. Esta skill es ese contrato, y viene con la evidencia de que se cumple bajo presión.
 
 ```
 /fuck-it-we-ball docs/superpowers/plans/2026-08-28-notif-hardening.md
@@ -66,8 +66,18 @@ Y un **smoke test real** en sesión sobre un repo sintético: 23 dispatches (0 `
 
 ## Instalación
 
+Instala la copia que corresponda al runtime. El contenido de `SKILL.md` es el mismo en ambos destinos.
+
+**Claude Code**
+
 ```bash
 git clone https://github.com/PieroJF/fuck-it-we-ball.git ~/.claude/skills/fuck-it-we-ball
+```
+
+**Codex**
+
+```bash
+git clone https://github.com/PieroJF/fuck-it-we-ball.git ~/.agents/skills/fuck-it-we-ball
 ```
 
 **Dependencias** (se invocan por nombre desde la skill):
@@ -81,10 +91,17 @@ git clone https://github.com/PieroJF/fuck-it-we-ball.git ~/.claude/skills/fuck-i
 
 ## Uso
 
+Claude Code: invoke `/fuck-it-we-ball [plan-or-work]`.
+Codex: invoke `$fuck-it-we-ball [plan-or-work]`.
+
 ```
 /fuck-it-we-ball                          # cadena de fuentes: sesión → plan en disco → handoff
 /fuck-it-we-ball docs/plans/foo.md        # ese plan
 /fuck-it-we-ball implementa reintentos con backoff y dead-letter   # texto libre ⇒ forging → plan → corrida
+
+$fuck-it-we-ball                          # la misma cadena de fuentes en Codex
+$fuck-it-we-ball docs/plans/foo.md        # ese plan en Codex
+$fuck-it-we-ball implementa reintentos con backoff y dead-letter   # texto libre ⇒ forging → plan → corrida
 ```
 
 También dispara la frase literal **"fuck it we ball"** / **"FIWB"** en cualquier mayúscula. **No** dispara con "dale", "sigue", "ejecuta todo", "hazlo todo", "modo autónomo" ni "no me preguntes": una corrida autónoma con subagentes y commits no puede arrancar por accidente (probado: 7/7 frases).
@@ -95,6 +112,28 @@ Etiqueta tus planes y el orden mejora; sin etiquetas también funciona (inferenc
 ### Task 4: Rate limiter por IP [asap] [sev:high] [depends: T2]
 ```
 
+## Compatibilidad de runtime y modelos
+
+Antes de la Fase 0, la skill resuelve una sola vez las capacidades expuestas. Claude se selecciona si están disponibles `Agent` y los tres alias Claude; Codex se selecciona si están disponibles `spawn_agent` y los tres identificadores Codex. La pregunta se resuelve de forma independiente: `AskUserQuestion` cuando es invocable, o una única pregunta de texto plano al final del turno. Si falta el adaptador completo, un modelo requerido o un revisor, la task se aparca como `needs-user`; no se inventan aliases ni se sustituye silenciosamente un modelo.
+
+| Rol | Claude Code | Codex | Uso |
+|---|---|---|---|
+| Implementación | `sonnet` | `gpt-5.6-terra` | Specs completos, tests y ediciones mecánicas. |
+| Juicio | `opus` | `gpt-5.6-sol` | Arquitectura, seguridad, debugging no trivial y revisión final. |
+| Trivial | `haiku` | `gpt-5.6-luna` | Transcripción literal, one-liners y listados. |
+
+Todos los dispatches usan esfuerzo `xhigh`. Si `Workflow` no está disponible, el trabajo con esa forma se enruta a SDD; el runtime no simula una herramienta ausente.
+
+## Pruebas de contrato de Codex
+
+La validación rápida está documentada en [`testing/codex/README.md`](testing/codex/README.md). Desde la raíz del repositorio:
+
+```powershell
+pwsh -NoProfile -File testing/codex/contract-tests.ps1
+```
+
+El resultado esperado es `11 passed, 0 failed, 11 total`. Esta prueba estática cubre el contrato de runtime, la invocación dual, los guards de deploy, el locator Windows de `project-context` y la paridad byte a byte de la copia instalada; no sustituye los escenarios de presión ni el smoke test de [`testing/`](testing/README.md).
+
 ## Archivos
 
 | Archivo | Qué es |
@@ -103,6 +142,7 @@ Etiqueta tus planes y el orden mejora; sin etiquetas también funciona (inferenc
 | [`DESIGN.md`](DESIGN.md) | Spec + decision-log del grilling (23 decisiones, 11 supuestos) |
 | [`PLAN.md`](PLAN.md) | Plan de implementación que se ejecutó (TDD en 3 fases) |
 | [`testing/`](testing/README.md) | Instrumento aislado, escenarios, salidas crudas RED/GREEN, findings, probes, triggers, smoke test |
+| [`testing/codex/`](testing/codex/README.md) | Contrato estático de compatibilidad Claude/Codex y cómo validarlo |
 
 ## Licencia
 
