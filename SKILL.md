@@ -23,6 +23,93 @@ preflight checks) never convert a listed stop into an automatic gate.
 First line of the run, in Spanish:
 `Modo FIWB activo — fuente: <ruta o "contexto de sesión"> · <n> tasks · modo inicial: <inline|SDD|workflow>`
 
+## Runtime adapter
+
+Resolve capabilities once, before Phase 0. Select the Claude adapter only when `Agent` and all three Claude model
+aliases are exposed; otherwise select the Codex adapter when `spawn_agent` and all three Codex model identifiers
+are exposed. Select the question mechanism independently: callable `AskUserQuestion` first, otherwise one
+plain-text question at turn end; `question_selection` takes priority over each adapter's usual question entry.
+Read `TaskCreate`/`TodoWrite` or another harness task list only when exposed.
+Use `Workflow` only when callable; otherwise route WORKFLOW-shaped work through SDD. If no complete agent adapter
+exists, or a required mapped model is missing, park every task needing execution or review as `needs-user`; INLINE
+is not an escape because its reviewer is also mandatory. Continue only read-only ordering, persistence and
+reporting. Never invent a tool alias or silently substitute a model.
+
+The JSON contract below is normative: use its exact identifiers and fallbacks; never negate or reinterpret them.
+
+<!-- fiwb-runtime-contract:start -->
+```json
+{
+  "schema": 1,
+  "invocations": {
+    "claude": "/fuck-it-we-ball",
+    "codex": "$fuck-it-we-ball"
+  },
+  "tools": {
+    "selection": "callable-agent-and-models",
+    "question_selection": "AskUserQuestion-if-callable-else-plain-text",
+    "question_formats": {
+      "AskUserQuestion": "2-4-options-recommended-first",
+      "plain-text": "single-direct-no-option-list"
+    },
+    "missing_agent": "park-needs-user",
+    "claude": {
+      "agent": "Agent",
+      "question": "AskUserQuestion",
+      "workflow": "Workflow",
+      "workflow_unit": "agent",
+      "workflow_model_required": true
+    },
+    "codex": {
+      "agent": "spawn_agent",
+      "question": "plain-text",
+      "task_list": "only-if-exposed",
+      "fork_turns": "none",
+      "reasoning_effort": "xhigh"
+    }
+  },
+  "models": {
+    "claude": {
+      "implementation": "sonnet",
+      "judgment": "opus",
+      "trivial": "haiku"
+    },
+    "codex": {
+      "implementation": "gpt-5.6-terra",
+      "judgment": "gpt-5.6-sol",
+      "trivial": "gpt-5.6-luna"
+    },
+    "effort": "xhigh"
+  },
+  "fallbacks": {
+    "question_max_per_turn": 1,
+    "workflow_unavailable": "SDD",
+    "task_list_unavailable": "skip",
+    "model_unavailable": "park-needs-user",
+    "reviewer_unavailable": "park-needs-user",
+    "context_without_telemetry": "persist-and-handoff-never-estimate"
+  },
+  "git": {
+    "capture": [
+      "BASE_BRANCH",
+      "BASE_SHA"
+    ],
+    "before_branch": true,
+    "guard_auto_deploy": true
+  }
+}
+```
+<!-- fiwb-runtime-contract:end -->
+
+In the phases below, “question” means the selected mechanism, at most once per turn. `AskUserQuestion` receives
+2–4 viable options with the recommendation first. Plain text receives a concise recommendation or implications,
+then one direct question and no option list. A Claude agent dispatch names the resolved model in `Agent(model: ...)`.
+A Codex dispatch calls `spawn_agent` with the resolved `model`,
+`reasoning_effort: "xhigh"`, and `fork_turns: "none"`; its message must therefore carry all task context. Every
+Claude Workflow unit calls `agent(p, {model, effort: 'xhigh'})`. Numeric context thresholds apply only when the
+runtime reports measured usage; without telemetry, never estimate a percentage—persist after every task and hand
+off when the host signals compaction or a context limit.
+
 ## Phase 0 — Find the work
 
 Argument of the invocation: an existing `.md` path ⇒ it is the source (skip the chain). Free text ⇒ the work
@@ -32,12 +119,12 @@ Text that looks like a path but does not exist ⇒ free text + one notice line.
 Source chain, first hit wins: (1) plan approved in this session's context → (2) newest `docs/superpowers/plans/*.md`
 or `docs/plans/*.md` with unchecked `- [ ]` tasks → (3) `SESSION_HANDOFF.md` sections `[open]` / `[closed-pending]`
 whose `Proyecto/raíz` is the cwd project (and, if the file is git-tracked, the current branch): their
-"Siguiente paso concreto" become tasks → (4) the harness task list (TaskCreate/TodoWrite) if the session has one.
-Two candidates at the same level ⇒ ONE `AskUserQuestion` to pick. List discarded sources under the initial table.
+"Siguiente paso concreto" become tasks → (4) the runtime task list, only if the host exposes one.
+Two candidates at the same level ⇒ ONE question to pick. List discarded sources under the initial table.
 A source that exists only in the session context is written to `docs/superpowers/plans/YYYY-MM-DD-<slug>.md`
 before the first task.
 
-**No source found ⇒ ONE `AskUserQuestion`, then nothing else until it is answered:**
+**No source found ⇒ ONE question, then nothing else until it is answered. With `AskUserQuestion`, use:**
 ```
 "No hay plan ni tasks pendientes en <cwd> (busqué: contexto, docs/superpowers/plans, docs/plans, SESSION_HANDOFF.md).
  ¿Preparo el trabajo antes de ejecutar?"
@@ -46,11 +133,14 @@ before the first task.
   3. Dame la lista de tasks y decido yo                 — sin ejecutar nada
   4. Abortar
 ```
-Option 1: invoke `forging` (never brainstorming/grilling directly) with the work statement, then
+With plain text, state the searched locations and recommend Forging because no approved plan exists, then ask only:
+`¿Quieres que prepare el trabajo con Forging, escriba el plan y lo ejecute después?`
+
+For `AskUserQuestion`, Option 1 invokes `forging` (never brainstorming/grilling directly) with the work statement, then
 `superpowers:writing-plans` with the argument
 `Etiqueta cada task con [asap] si es urgente, [sev:high|med|low], [depends: Tn] y [unblocks: Tn]`.
-Option 4 or no answer ⇒ the run ends; report the sources searched. Writing code before a plan exists is not
-"starting"; it is the failure this phase prevents.
+Option 4, a negative plain-text answer, or no answer ⇒ the run ends; report the sources searched. Writing code
+before a plan exists is not "starting"; it is the failure this phase prevents.
 
 ## Phase 1 — Order
 
@@ -78,13 +168,14 @@ be unblocked by this run). Plan order is the tie-break of last resort, never the
 Render the table in Spanish before any execution, `~` on every inferred cell:
 ```
 | # | task | tier | deps | desbloquea | gravedad | modo | modelo |
-| 1 | T1 … | 1 | — | T3 | high | SDD | sonnet |
+| 1 | T1 … | 1 | — | T3 | high | SDD | implementation |
 | 6 | T6 deploy prod | 3 | — | — | ~med | parked: hard-stop | — |
 Fuentes descartadas: <ninguna | lista>
 ```
 GO checkpoint: **only if the plan was generated inside this run** (nobody human has read it) ask ONE
-`AskUserQuestion` ("¿Ejecuto en este orden?" — `Sí (Recomendado)` / `Cambiar orden` / `Abortar`). A pre-existing
-approved plan or handoff starts in the same turn; the user interrupts with Esc.
+question. With `AskUserQuestion`: "¿Ejecuto en este orden?" — `Sí (Recomendado)` / `Cambiar orden` / `Abortar`.
+With plain text, recommend the displayed order with its reason, then ask only `¿Ejecuto en este orden?`. A
+pre-existing approved plan or handoff starts in the same turn; the user interrupts with Esc.
 
 ## Phase 2 — Run loop
 
@@ -96,36 +187,39 @@ approved plan or handoff starts in the same turn; the user interrupts with Esc.
 |---|---|
 | INLINE (main session does the work) | ≤2 runnable tasks · or the task needs session state (running Docker, browser session, loaded credentials) · or ≤2 files and no tests |
 | SDD — `superpowers:subagent-driven-development` | ≥3 runnable tasks with plan-specified steps → one fresh implementer subagent per task, sequential; parallel only for tasks with no shared files, each in its own worktree · or a batch of same-shape micro-edits → ONE subagent for the batch |
-| WORKFLOW — invoke `workflow-resilience` FIRST, then `workflow-authoring` | ≥6 independent same-shape units (fan-out + verification) · or chained stages (analysis → adversarial verification) · or outputs that must survive the session |
+| WORKFLOW — when callable, invoke `workflow-resilience` FIRST, then `workflow-authoring`; otherwise use SDD | ≥6 independent same-shape units (fan-out + verification) · or chained stages (analysis → adversarial verification) · or outputs that must survive the session |
 | Tie | SDD |
 
 "Delegating takes longer than doing it", "one owner of the git index", "a deploy is not delegated" are not
-predicates of this table. Invoking this skill is the user's opt-in to the Workflow tool for the run.
+predicates of this table. Invoking this skill is the user's opt-in to the Workflow tool for the run when that
+tool is exposed.
 
-### Model (every dispatch names it — `Agent(model: …)`, Workflow `agent(p, {model, effort: 'xhigh'})`)
+### Model (every dispatch names the runtime-resolved model)
 
-| Model | Use for |
-|---|---|
-| `sonnet` | implementing from a complete spec, tests, mechanical multi-file edits, reviews of small/medium diffs, single-task docs, re-reviews |
-| `opus` | design/judgment (architecture, contracts), non-trivial debugging, security/authz, cross-module integration, final branch review, fix-loop rounds 4–5, tier-1 tasks with sev high whose spec leaves design decisions open (a tier-1 one-liner with a complete spec is still `sonnet`) |
-| `haiku` | literal transcription (the plan carries the full code), one-liners, listings/greps |
-| `fable` | **never** in a subagent or workflow unit, in any role (implementer, reviewer, judge), unless the user explicitly orders it in this run |
+| Role | Claude | Codex | Use for |
+|---|---|---|---|
+| implementation | `sonnet` | `gpt-5.6-terra` | implementing from a complete spec, tests, mechanical multi-file edits, reviews of small/medium diffs, single-task docs, re-reviews |
+| judgment | `opus` | `gpt-5.6-sol` | design/judgment (architecture, contracts), non-trivial debugging, security/authz, cross-module integration, final branch review, fix-loop rounds 4–5, tier-1 tasks with sev high whose spec leaves design decisions open (a tier-1 one-liner with a complete spec still uses implementation) |
+| trivial | `haiku` | `gpt-5.6-luna` | literal transcription (the plan carries the full code), one-liners, listings/greps |
+| forbidden unless explicitly ordered | `fable` | `fable` | **never** in a subagent or workflow unit, in any role (implementer, reviewer, judge), unless the user explicitly orders it in this run |
 
-Sonnet vs Opus doubt ⇒ Sonnet. Effort `xhigh` wherever the tool exposes it. The main session running an INLINE
-task is not a dispatch; every subagent is.
+Implementation vs judgment doubt ⇒ implementation. Effort `xhigh` wherever the tool exposes it. The main session
+running an INLINE task is not a dispatch; every subagent is.
 
 ### Verify and review (execution-rules 2, 3, 5 stay in force)
 
 SDD/WORKFLOW: SDD's two-stage review per task (spec compliance → code quality) + fix-loop; a task that changes
 no code and no tests (docs only) takes one reviewer. INLINE: tests + lint +
-`superpowers:verification-before-completion` + ONE reviewer subagent per task (`sonnet`; `opus` when the task
-touches security/authz). UI change ⇒ browser validation. Close ⇒ final whole-branch review on `opus`.
+`superpowers:verification-before-completion` + ONE reviewer subagent per task (implementation model; judgment
+model when the task touches security/authz). UI change ⇒ browser validation. Close ⇒ final whole-branch review
+on the judgment model.
 
 ### Git
 
-One commit per verified task (conventional message). On `main`/`master` ⇒ create `fiwb/<plan-slug>` first; on
-a feature branch ⇒ use it. `backup-before-modify` (controles / pag web) and `db-backup` run before the first change
-they cover. Merge and push happen only at Close.
+Before creating or switching branches, capture `BASE_BRANCH` and `BASE_SHA` from the current checkout. One commit
+per verified task (conventional message). On `main`/`master` ⇒ create `fiwb/<plan-slug>` first; on a feature branch
+⇒ use it. `backup-before-modify` (controles / pag web) and `db-backup` run before the first change they cover.
+Merge and push happen only at Close and target the captured base branch.
 
 ### Persist (after EVERY task, before picking the next)
 
@@ -133,18 +227,20 @@ they cover. Merge and push happen only at Close.
 2. Append one row to `## FIWB run-log` at the end of that same file (create the section on the first task):
    `| T | tier | modo | modelo | commit | estado | desviaciones / pregunta |` — estado ∈ `done` ·
    `parked: hard-stop|needs-user|fix-loop-exhausted|blocked-by-parked|arch-deviation`.
-3. One chat line: `▶ T3 [tier 1] SDD/sonnet → done · commit a1b2c3d · desviaciones: 0` (or `→ parked: <motivo>`).
+3. One chat line: `▶ T3 [tier 1] SDD/<resolved-model> → done · commit a1b2c3d · desviaciones: 0` (or `→ parked: <motivo>`).
 
-Commits and a final report are not persistence. A later `/fuck-it-we-ball` resumes from the boxes and the run-log.
+Commits and a final report are not persistence. A later runtime-specific FIWB invocation resumes from the boxes
+and the run-log.
 The tick + run-log row go in their own bookkeeping commit (`chore(fiwb): T3 done (run-log)`) right after the
 task's commit, so the code commit stays one-per-task and the resume state is always committed.
 
 ## Stops — the only reasons to stop
 
 A stop = the task is **parked** with its reason in the run-log and ONE question is **queued**. Queued questions are
-asked when nothing else is runnable, or at Close: one `AskUserQuestion` per call, 2–4 options, recommended
-first, ordered by the parked task's tier. The run never "freezes": it finishes everything else and ends with
-the question open — even if the user is on a plane and answers tomorrow.
+asked when nothing else is runnable, or at Close, ordered by the parked task's tier. `AskUserQuestion` gets 2–4
+viable options with the recommendation first; plain text gets concise implications/recommendation followed by one
+direct question and no option list. Use one question per turn/call. The run never "freezes": it finishes everything
+else and ends with the question open — even if the user is on a plane and answers tomorrow.
 
 **Hard-stop list** (park, never execute, no condition self-authorises it — items enter the list **by action,
 not by content**): deleting a directory or file tree (`rm -rf`, `git rm -r`), truncating or deleting data, a
@@ -157,10 +253,10 @@ Cloudflare changes · widening public surface (unauthenticated routes,
 CORS, CSP) · an instruction whose readings lead to incompatible architectures · a decision the code cannot
 contain (goal's two motives).
 
-**Needs-user**: login/OTP, physical device, third-party UI, anything the harness forbids Claude from doing.
+**Needs-user**: login/OTP, physical device, third-party UI, anything the active harness forbids the agent from doing.
 Park, queue the question with the exact steps (`! <command>` where useful).
 
-**Architectural deviation** (see below). Park the task; queue the question with options.
+**Architectural deviation** (see below). Park the task; queue the question in the selected mechanism's format.
 
 Not a stop: task size, "the user might want to see this", "I'd rather confirm", a green suite before a deploy,
 a rollback plan, a preflight, a monitor, a PushNotification, a "supuesto operativo". Notifications inform;
@@ -173,8 +269,8 @@ they do not replace the queued question.
   `desviaciones` column, report at Close. No stop. Implementing a task exactly as the plan says, while noting
   that its premise is weaker than assumed, is tactical: note it, queue the note into the relevant question.
 - **Architectural** (any of the four changes — e.g. adding Redis or another store, a new service, a changed
-  API): park `arch-deviation`, queue a question with 2–4 options. Never decide it alone, never "declare it in
-  the report" instead of asking.
+  API): park `arch-deviation`, queue one question in the selected mechanism's format. Never decide it alone,
+  never "declare it in the report" instead of asking.
 - **Failure** (red tests, broken build, stuck subagent): `superpowers:systematic-debugging` + SDD fix-loop
   (5 rounds, rounds 4–5 escalate one model tier; INLINE: 3 attempts). Still red ⇒ park `fix-loop-exhausted`;
   dependents park `blocked-by-parked`; continue with independent tasks. Never edit, skip or delete a test to
@@ -183,24 +279,28 @@ they do not replace the queued question.
 
 ## Context
 
-<70 %: continue. 70–80 %: one warning line, no stop; prefer SDD/WORKFLOW for the rest. ≥80 %: no new task,
-commit what is verified, invoke the `handoff` skill (section with run-log + "Siguiente paso concreto"), end the
-turn. The next session resumes with `/fuck-it-we-ball`.
+With measured runtime telemetry: <70 % continue; 70–80 % emit one warning line, do not stop, and prefer
+SDD/WORKFLOW for the rest; ≥80 % start no new task, commit what is verified, invoke the `handoff` skill (section
+with run-log + "Siguiente paso concreto"), and end the turn. Without measured telemetry, never estimate context
+usage: rely on per-task persistence and hand off when the host signals compaction or a context limit. Resume with
+the invocation named for the active runtime in the contract.
 
 ## Close
 
-1. Final whole-branch review on `opus` + fix-loop. 2. No CRITICAL/HIGH open ⇒ fast-forward merge into the origin
+1. Final whole-branch review on the judgment model + fix-loop. 2. No CRITICAL/HIGH open ⇒ fast-forward merge into the origin
 branch + direct push (solo dev, never a PR); otherwise stay on the branch and say so. 3. Queued questions, one per
 call, by tier; an answer that unblocks tasks ⇒ run them now, repeat from 1. 4. Recap in Spanish: done/parked,
 commits, deviations, mode/model per task, dispatch count. 5. Update the handoff section with what stayed parked.
 Never an automatic deploy — a deploy task is a queued question, always.
 
+Before merge or push, determine whether the action triggers a production deploy; if it does, park it as a hard-stop and ask the queued deploy question before proceeding.
+
 ## Precedence
 
 While this skill is active it overrides ONLY the pause rules of `execution-rules` (one phase per turn, stop on
 any deviation, plan-revision approval, "wait for approval"), of `phased-approval` (OK between phases) and of
-`superpowers:executing-plans` / `writing-plans` (review checkpoints, execution-mode prompt); `~/.claude/CLAUDE.md`
-carries the matching clause. Everything else stays in force: verification, UI validation, no phantom progress,
+`superpowers:executing-plans` / `writing-plans` (review checkpoints, execution-mode prompt); the active runtime's
+global instruction file (`~/.claude/CLAUDE.md` or `~/.codex/AGENTS.md`) carries the matching clause. Everything else stays in force: verification, UI validation, no phantom progress,
 context thresholds, `backup-before-modify`, `db-backup`, `lint-and-validate`, `investigate-before-asking`,
 `ui-validation-protocol`, `token-aware-authoring`, `workflow-resilience`, `no-yesman`, `project-context`.
 `goal` is imported by reference (its two stop motives, its prohibitions), not activated.
@@ -214,12 +314,12 @@ context thresholds, `backup-before-modify`, `db-backup`, `lint-and-validate`, `i
 | "Con rollback automático / monitor / preflight el deploy es seguro" | Mitigation ≠ permission. A deploy with rollback is still a deploy. |
 | "Si el LB pinea por IP, despliego" / "si la suite está verde, despliego" | No technical condition self-authorises a hard-stop item. |
 | "Lo que hay es una puerta, no una pregunta" | A gate the run passes alone is exactly the stop the list forbids. |
-| "Todas las tasks las hago yo (Fable); delegar tarda más; un deploy no se delega" | ≥3 runnable specified tasks ⇒ SDD with `sonnet`/`opus` implementers. Delegation cost is not a predicate. |
-| "Revisor `fable`: ahí quiero el modelo más fuerte" | Fable never in a subagent, in any role. Final review is `opus`. |
+| "Todas las tasks las hago yo (Fable); delegar tarda más; un deploy no se delega" | ≥3 runnable specified tasks ⇒ SDD with runtime-resolved implementation/judgment models. Delegation cost is not a predicate. |
+| "Revisor `fable`: ahí quiero el modelo más fuerte" | Fable never in a subagent, in any role. Final review uses the judgment model. |
 | "T3 antes: es `[asap]` y más pequeño" / "nada llega a prod hasta T6, así que el orden no cambia" | Order = tier, then urgent tasks unblocked, then severity. Size and "it all ships together" are not keys. |
 | "Sin plan escrito: código directo; las decisiones las declaro en vez de consultarlas" | No source ⇒ the permission question ⇒ forging → writing-plans ⇒ GO. Code before a plan is the failure. |
-| "Si una tarea resulta insegura la salto y lo cuento en el informe" | Skip ≠ park. Parked = reason in the run-log + queued question with options. |
-| "Una sola respuesta desbloquea T6 y T7 juntos" | One question per call, ordered by tier. Bundling hides the recommendation. |
+| "Si una tarea resulta insegura la salto y lo cuento en el informe" | Skip ≠ park. Parked = reason in the run-log + queued question in the selected mechanism's format. |
+| "Una sola respuesta desbloquea T6 y T7 juntos" | One question per turn/call, ordered by tier. Bundling hides the recommendation. |
 | "El progreso está en los commits y en el informe" | Boxes + run-log rows are the persistence. Commits do not tell the next session what is parked and why. |
 | "Resuelvo lo de Redis yo mismo, es una decisión técnica" | A new external dependency is architectural ⇒ question. A renamed export is tactical ⇒ resolve. |
 | "`legacy/` es código trackeado, reversible con `git revert` ⇒ no es un stop" | Deletion is on the list by action, not by content. Reversible ≠ permitted. Inspect if you like — then park and ask. |
@@ -229,9 +329,9 @@ context thresholds, `backup-before-modify`, `db-backup`, `lint-and-validate`, `i
 
 - About to run `deploy`, `rm -rf`, `DROP`, `TRUNCATE`, `push --force`, a payment or an email because the user pre-authorised it.
 - About to replace a question with a PushNotification, a "gate", a "supuesto operativo" or an automatic rollback.
-- Dispatching a subagent without `model:` — or with `fable`.
+- Dispatching a subagent without the runtime-resolved model — or with `fable`.
 - Executing in plan order without the tier table on screen.
-- Two questions in one `AskUserQuestion` call; a question before runnable work is exhausted.
+- Two questions in one turn/call; a question before runnable work is exhausted.
 - Writing code while no plan file exists.
 - A task marked done with no `- [x]` and no run-log row.
 - Adding a service, store or dependency the plan does not name, without a queued question.
@@ -244,5 +344,5 @@ Phase 0  arg | session plan | plan file | handoff | task list  ──none──�
 Phase 1  tags + inference → tiers (Kahn + inherited urgency) → Spanish table → GO only if plan born here
 Phase 2  pick → mode table → model table → execute → verify+review → commit → box + run-log row + ▶ line → context
 Stops    hard-stop list · needs-user · architectural deviation  ⇒ park + queue ONE question (asked at Close)
-Close    opus review → ff-merge + push → questions 1×call by tier → recap (es) → handoff section
+Close    judgment review → deploy guard → ff-merge + push → questions 1×turn/call by tier → recap (es) → handoff section
 ```

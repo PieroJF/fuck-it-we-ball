@@ -66,11 +66,11 @@ git commit -m "test(fiwb): add Codex runtime contract RED"
 - Consumes: host tool inventory and available model identifiers.
 - Produces: normalized question, dispatch, workflow, task-source, context, and git-close behavior.
 
-- [ ] **Step 1: Confirm RED still fails for adapter assertions**
-- [ ] **Step 2: Add the minimal runtime adapter and its marked JSON contract before Phase 0**
-- [ ] **Step 3: Make Mode, Model, Source, Stops, Context, Close, Precedence, red flags, and quick reference use normalized capabilities**
-- [ ] **Step 4: Run contract tests; adapter-related assertions must pass**
-- [ ] **Step 5: Run skill quick validation and review the diff**
+- [x] **Step 1: Confirm RED still fails for adapter assertions**
+- [x] **Step 2: Add the minimal runtime adapter and its marked JSON contract before Phase 0**
+- [x] **Step 3: Make Mode, Model, Source, Stops, Context, Close, Precedence, red flags, and quick reference use normalized capabilities**
+- [x] **Step 4: Run contract tests; adapter-related assertions must pass**
+- [x] **Step 5: Run skill quick validation and review the diff**
 
 ### Task 3: Global safety precedence and project context [sev:high] [depends: T1] [unblocks: T5]
 

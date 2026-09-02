@@ -71,11 +71,22 @@ function Test-NormalizedAdapter {
     return $Contract.schema -is [long] -and $Contract.schema -eq 1 -and
         (Test-ExactString $Contract.invocations.claude '/fuck-it-we-ball') -and
         (Test-ExactString $Contract.invocations.codex '$fuck-it-we-ball') -and
+        (Test-ExactString $Contract.tools.selection 'callable-agent-and-models') -and
+        (Test-ExactString $Contract.tools.question_selection 'AskUserQuestion-if-callable-else-plain-text') -and
+        (Test-ExactString $Contract.tools.question_formats.AskUserQuestion '2-4-options-recommended-first') -and
+        (Test-ExactString $Contract.tools.question_formats.'plain-text' 'single-direct-no-option-list') -and
+        (Test-ExactString $Contract.tools.missing_agent 'park-needs-user') -and
         (Test-ExactString $Contract.tools.claude.agent 'Agent') -and
         (Test-ExactString $Contract.tools.claude.question 'AskUserQuestion') -and
+        (Test-ExactString $Contract.tools.claude.workflow 'Workflow') -and
+        (Test-ExactString $Contract.tools.claude.workflow_unit 'agent') -and
+        $Contract.tools.claude.workflow_model_required -is [bool] -and
+        $Contract.tools.claude.workflow_model_required -and
         (Test-ExactString $Contract.tools.codex.agent 'spawn_agent') -and
         (Test-ExactString $Contract.tools.codex.question 'plain-text') -and
         (Test-ExactString $Contract.tools.codex.task_list 'only-if-exposed') -and
+        (Test-ExactString $Contract.tools.codex.fork_turns 'none') -and
+        (Test-ExactString $Contract.tools.codex.reasoning_effort 'xhigh') -and
         (Test-ExactString $Contract.models.claude.implementation 'sonnet') -and
         (Test-ExactString $Contract.models.claude.judgment 'opus') -and
         (Test-ExactString $Contract.models.claude.trivial 'haiku') -and
@@ -87,6 +98,8 @@ function Test-NormalizedAdapter {
         $Contract.fallbacks.question_max_per_turn -eq 1 -and
         (Test-ExactString $Contract.fallbacks.workflow_unavailable 'SDD') -and
         (Test-ExactString $Contract.fallbacks.task_list_unavailable 'skip') -and
+        (Test-ExactString $Contract.fallbacks.model_unavailable 'park-needs-user') -and
+        (Test-ExactString $Contract.fallbacks.reviewer_unavailable 'park-needs-user') -and
         (Test-ExactString $Contract.fallbacks.context_without_telemetry 'persist-and-handoff-never-estimate') -and
         $capture.Count -eq 2 -and
         (Test-ExactString $capture[0] 'BASE_BRANCH') -and
@@ -146,8 +159,12 @@ $goodFixture = @'
   "schema": 1,
   "invocations": {"claude": "/fuck-it-we-ball", "codex": "$fuck-it-we-ball"},
   "tools": {
-    "claude": {"agent": "Agent", "question": "AskUserQuestion"},
-    "codex": {"agent": "spawn_agent", "question": "plain-text", "task_list": "only-if-exposed"}
+    "selection": "callable-agent-and-models",
+    "question_selection": "AskUserQuestion-if-callable-else-plain-text",
+    "question_formats": {"AskUserQuestion": "2-4-options-recommended-first", "plain-text": "single-direct-no-option-list"},
+    "missing_agent": "park-needs-user",
+    "claude": {"agent": "Agent", "question": "AskUserQuestion", "workflow": "Workflow", "workflow_unit": "agent", "workflow_model_required": true},
+    "codex": {"agent": "spawn_agent", "question": "plain-text", "task_list": "only-if-exposed", "fork_turns": "none", "reasoning_effort": "xhigh"}
   },
   "models": {
     "claude": {"implementation": "sonnet", "judgment": "opus", "trivial": "haiku"},
@@ -158,6 +175,8 @@ $goodFixture = @'
     "question_max_per_turn": 1,
     "workflow_unavailable": "SDD",
     "task_list_unavailable": "skip",
+    "model_unavailable": "park-needs-user",
+    "reviewer_unavailable": "park-needs-user",
     "context_without_telemetry": "persist-and-handoff-never-estimate"
   },
   "git": {"capture": ["BASE_BRANCH", "BASE_SHA"], "before_branch": true, "guard_auto_deploy": true}
@@ -174,6 +193,14 @@ $negativeModel = $goodFixture | ConvertTo-Json -Depth 20 | ConvertFrom-Json -Dep
 $negativeModel.models.codex.implementation = 'gpt-5.6-sol'
 $negativeCase = $goodFixture | ConvertTo-Json -Depth 20 | ConvertFrom-Json -Depth 20
 $negativeCase.tools.codex.agent = 'SPAWN_AGENT'
+$negativeFork = $goodFixture | ConvertTo-Json -Depth 20 | ConvertFrom-Json -Depth 20
+$negativeFork.tools.codex.fork_turns = 'all'
+$negativeWorkflowUnit = $goodFixture | ConvertTo-Json -Depth 20 | ConvertFrom-Json -Depth 20
+$negativeWorkflowUnit.tools.claude.workflow_model_required = $false
+$negativePlainTextQuestion = $goodFixture | ConvertTo-Json -Depth 20 | ConvertFrom-Json -Depth 20
+$negativePlainTextQuestion.tools.question_formats.'plain-text' = '2-4-options'
+$negativeReviewer = $goodFixture | ConvertTo-Json -Depth 20 | ConvertFrom-Json -Depth 20
+$negativeReviewer.fallbacks.reviewer_unavailable = 'continue-inline'
 $negativeTypes = $goodFixture | ConvertTo-Json -Depth 20 | ConvertFrom-Json -Depth 20
 $negativeTypes.schema = '1'
 $negativeTypes.git.before_branch = 1
@@ -185,6 +212,10 @@ $fixtureGate = (Test-NormalizedAdapter $goodFixture) -and
     -not (Test-NormalizedAdapter $negativeOrder) -and
     -not (Test-NormalizedAdapter $negativeModel) -and
     -not (Test-NormalizedAdapter $negativeCase) -and
+    -not (Test-NormalizedAdapter $negativeFork) -and
+    -not (Test-NormalizedAdapter $negativeWorkflowUnit) -and
+    -not (Test-NormalizedAdapter $negativePlainTextQuestion) -and
+    -not (Test-NormalizedAdapter $negativeReviewer) -and
     -not (Test-NormalizedAdapter $negativeTypes) -and
     (Test-GuardProse $guardFixture) -and
     -not (Test-GuardProse $negatedGuardFixture)
