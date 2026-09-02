@@ -103,10 +103,10 @@ git commit -m "test(fiwb): add Codex runtime contract RED"
 - Consumes: validated runtime-neutral skill text.
 - Produces: byte-identical installed copies and documented `/fuck-it-we-ball` plus `$fuck-it-we-ball` usage.
 
-- [ ] **Step 1: Update README support, invocation, model, and test sections**
-- [ ] **Step 2: Synchronize the validated skill into `.claude/skills`**
-- [ ] **Step 3: Run parity and frontmatter validation**
-- [ ] **Step 4: Ensure git diff contains no unrelated user changes**
+- [x] **Step 1: Update README support, invocation, model, and test sections**
+- [x] **Step 2: Synchronize the validated skill into `.claude/skills`**
+- [x] **Step 3: Run parity and frontmatter validation**
+- [x] **Step 4: Ensure git diff contains no unrelated user changes**
 
 ### Task 5: Behavioral verification and close [sev:high] [depends: T2, T3, T4]
 
@@ -131,3 +131,4 @@ git commit -m "test(fiwb): add Codex runtime contract RED"
 | T | tier | modo | modelo | commit | estado | desviaciones / pregunta |
 |---|---:|---|---|---|---|---|
 | T3 | 3 | SDD | gpt-5.6-terra | external config + bookkeeping | done | 0 |
+| T4 | 3 | SDD | gpt-5.6-terra | a22f3ba, a8e3229 | done | fix rounds 1–2: installed-copy EOL parity + false-positive coverage |
