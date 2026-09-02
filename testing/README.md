@@ -15,3 +15,26 @@ Instrumento: `claude -p --safe-mode --strict-mcp-config --model fable --effort x
 | `scenarios/`, `run-arm.sh`, `run-triggers.sh`, `make-fixture.sh`, `fixture-plan.md` | harness reproducible | — |
 
 Total corridas Fable en `claude -p`: 40 (+ 8 triggers). Skill final: `../SKILL.md`; backup `../SKILL.v1.md`.
+
+## Codex runtime adapter — 2026-09-02
+
+The original Claude evidence above is historical and remains unchanged. Fresh runtime-neutral verification lives separately in `codex/`:
+
+| Artifact | What it verifies | Fresh result |
+|---|---|---|
+| `codex/contract-tests.ps1` | deterministic adapter contract, installed-copy parity, deploy precedence | 11/11 PASS |
+| `codex/run-probes.ps1 -SelfTest` | temporary fixture, safe CLI flags, JSONL parsing, semantic-completion shutdown | PASS |
+| `codex/run-probes.ps1 -Mode Codex -KeepArtifacts` | tool/model routing, one plain-text question, hard stops, persistence, Workflow→SDD, disposable smoke | 8/8 behavioral criteria PASS |
+| `codex/green-findings.md` | manual scoring, exact outputs, safety checks, and runtime limitations | recorded |
+| fresh copied Claude harness | S1–S4 ×1 plus triggers without rewriting historical `raw/` | 3/3 evaluable scenarios PASS; S2 provider refusal; 7/7 measurable triggers |
+
+Run the deterministic and behavioral checks from the repository root:
+
+```powershell
+pwsh -NoProfile -File testing/codex/contract-tests.ps1
+pwsh -NoProfile -File testing/codex/run-probes.ps1 -SelfTest
+pwsh -NoProfile -File testing/codex/run-probes.ps1 -Mode Codex -KeepArtifacts
+pwsh -NoProfile -File testing/codex/run-probes.ps1 -Mode Claude -KeepArtifacts
+```
+
+`-KeepArtifacts` retains the unique temporary evidence directory printed by the runner. Omit it to remove the disposable fixtures after the summary is written. Use `-CodexScenarios question,routing,workflow,smoke` to rerun a subset. Codex authentication remains in the existing `CODEX_HOME`; config, rules, session persistence, fixture home, and workspace are isolated, and no credentials are copied into a fixture.
