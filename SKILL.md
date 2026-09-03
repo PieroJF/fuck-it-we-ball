@@ -52,13 +52,17 @@ The JSON contract below is normative: use its exact identifiers and fallbacks; n
       "AskUserQuestion": "2-4-options-recommended-first",
       "plain-text": "single-direct-no-option-list"
     },
+    "plain_text_terminal": true,
     "missing_agent": "park-needs-user",
     "claude": {
       "agent": "Agent",
       "question": "AskUserQuestion",
       "workflow": "Workflow",
       "workflow_unit": "agent",
-      "workflow_model_required": true
+      "workflow_model_required": true,
+      "agent_effort_field": "only-if-exposed",
+      "dispatch_effort_declaration_required": true,
+      "workflow_effort_required": true
     },
     "codex": {
       "agent": "spawn_agent",
@@ -80,6 +84,17 @@ The JSON contract below is normative: use its exact identifiers and fallbacks; n
       "trivial": "gpt-5.6-luna"
     },
     "effort": "xhigh"
+  },
+  "persistence": {
+    "done_checkbox": "checked",
+    "parked_checkbox": "unchecked",
+    "resume_state": "latest-run-log",
+    "parked_redispatch": "only-after-user-unblocks",
+    "bookkeeping_scope": "one-task-per-commit"
+  },
+  "deviations": {
+    "specified_approach_premise": "implement-tactical-note",
+    "new_dependency": "park-arch-deviation"
   },
   "fallbacks": {
     "question_max_per_turn": 1,
@@ -103,10 +118,15 @@ The JSON contract below is normative: use its exact identifiers and fallbacks; n
 
 In the phases below, “question” means the selected mechanism, at most once per turn. `AskUserQuestion` receives
 2–4 viable options with the recommendation first. Plain text receives a concise recommendation or implications,
-then one direct question and no option list. A Claude agent dispatch names the resolved model in `Agent(model: ...)`.
+then one direct question and no option list; the question mark is the final character of the turn, with no recap,
+hypothetical next steps or commentary after it. Every planned Claude agent dispatch explicitly declares resolved model
+and `xhigh` effort. Call `Agent(model: ...)` and add an `effort` field only if the exposed Agent tool supports that
+field; never invent an unsupported Agent parameter. The declaration remains mandatory even when the call has no
+effort field.
 A Codex dispatch calls `spawn_agent` with the resolved `model`,
 `reasoning_effort: "xhigh"`, and `fork_turns: "none"`; its message must therefore carry all task context. Every
-Claude Workflow unit calls `agent(p, {model, effort: 'xhigh'})`. Numeric context thresholds apply only when the
+Claude Workflow unit calls `agent(p, {model, effort: 'xhigh'})`; Workflow's effort field is always mandatory.
+Numeric context thresholds apply only when the
 runtime reports measured usage; without telemetry, never estimate a percentage—persist after every task and hand
 off when the host signals compaction or a context limit.
 
@@ -123,6 +143,9 @@ whose `Proyecto/raíz` is the cwd project (and, if the file is git-tracked, the 
 Two candidates at the same level ⇒ ONE question to pick. List discarded sources under the initial table.
 A source that exists only in the session context is written to `docs/superpowers/plans/YYYY-MM-DD-<slug>.md`
 before the first task.
+Before ordering a resumed source, read each task's last row in `## FIWB run-log`. That latest row is authoritative:
+an unchecked task whose latest state is `parked:*` remains parked and is not dispatched again. Only a user answer
+that explicitly unblocks it returns it to consideration; it receives `[x]` only after the task actually completes.
 
 **No source found ⇒ ONE question, then nothing else until it is answered. With `AskUserQuestion`, use:**
 ```
@@ -223,24 +246,31 @@ Merge and push happen only at Close and target the captured base branch.
 
 ### Persist (after EVERY task, before picking the next)
 
-1. Tick `- [x]` on the task in the source file (plan, or the handoff section).
+1. Checkbox encodes completion only: set `- [x]` if and only if the task is `done`. Every `parked:*` task must
+   remain `- [ ]` until a user answer unblocks it and the task subsequently completes. Parking never checks a box.
 2. Append one row to `## FIWB run-log` at the end of that same file (create the section on the first task):
    `| T | tier | modo | modelo | commit | estado | desviaciones / pregunta |` — estado ∈ `done` ·
    `parked: hard-stop|needs-user|fix-loop-exhausted|blocked-by-parked|arch-deviation`.
 3. One chat line: `▶ T3 [tier 1] SDD/<resolved-model> → done · commit a1b2c3d · desviaciones: 0` (or `→ parked: <motivo>`).
 
-Commits and a final report are not persistence. A later runtime-specific FIWB invocation resumes from the boxes
-and the run-log.
-The tick + run-log row go in their own bookkeeping commit (`chore(fiwb): T3 done (run-log)`) right after the
-task's commit, so the code commit stays one-per-task and the resume state is always committed.
+Commits and a final report are not persistence. On resume, the last run-log row for each task governs its state;
+`parked:*` plus an unchecked box prevents redispatch until the user explicitly unblocks it. A completed task must
+have both `[x]` and latest state `done`; any checkbox/run-log contradiction is a persistence failure and must be
+repaired before selecting work.
+The checkbox + run-log row go in their own bookkeeping commit (`chore(fiwb): T3 done (run-log)` or
+`chore(fiwb): T6 parked (run-log)`) right after the task outcome, so code and resume state stay separate. Each
+bookkeeping commit covers exactly one task: never add, log, or commit a later task's outcome while persisting the
+current one. Finish the current bookkeeping commit before selecting and persisting the next task.
 
 ## Stops — the only reasons to stop
 
 A stop = the task is **parked** with its reason in the run-log and ONE question is **queued**. Queued questions are
 asked when nothing else is runnable, or at Close, ordered by the parked task's tier. `AskUserQuestion` gets 2–4
 viable options with the recommendation first; plain text gets concise implications/recommendation followed by one
-direct question and no option list. Use one question per turn/call. The run never "freezes": it finishes everything
-else and ends with the question open — even if the user is on a plane and answers tomorrow.
+direct question and no option list. Use one question per turn/call. Even when asked to describe the interaction
+instead of using tools, end immediately after that literal question; do not describe the later answer path. The run
+never "freezes": it finishes everything else and ends with the question open — even if the user is on a plane and
+answers tomorrow.
 
 **Hard-stop list** (park, never execute, no condition self-authorises it — items enter the list **by action,
 not by content**): deleting a directory or file tree (`rm -rf`, `git rm -r`), truncating or deleting data, a
@@ -266,8 +296,12 @@ they do not replace the queued question.
 
 - **Tactical** (contracts, data model, external dependencies and the task's approach unchanged — a renamed
   export, an existing helper, a test adjusted to the real signature): resolve it, add it to the run-log
-  `desviaciones` column, report at Close. No stop. Implementing a task exactly as the plan says, while noting
-  that its premise is weaker than assumed, is tactical: note it, queue the note into the relevant question.
+  `desviaciones` column, report at Close. No stop. If the plan explicitly fixes an implementable approach, a
+  newly discovered weakness in that approach's premise does **not** make the task an architectural deviation:
+  implement the specified approach, keep the task runnable, record the limitation, and queue the note into the
+  relevant existing question. Exact case: a plan that explicitly requires an in-process `Map` and says "sin
+  Redis" still gets that `Map` with three replicas; do not park that task and do not add Redis. Note that its
+  effective limit is per replica in the deploy question.
 - **Architectural** (any of the four changes — e.g. adding Redis or another store, a new service, a changed
   API): park `arch-deviation`, queue one question in the selected mechanism's format. Never decide it alone,
   never "declare it in the report" instead of asking.
@@ -320,8 +354,11 @@ context thresholds, `backup-before-modify`, `db-backup`, `lint-and-validate`, `i
 | "Sin plan escrito: código directo; las decisiones las declaro en vez de consultarlas" | No source ⇒ the permission question ⇒ forging → writing-plans ⇒ GO. Code before a plan is the failure. |
 | "Si una tarea resulta insegura la salto y lo cuento en el informe" | Skip ≠ park. Parked = reason in the run-log + queued question in the selected mechanism's format. |
 | "Una sola respuesta desbloquea T6 y T7 juntos" | One question per turn/call, ordered by tier. Bundling hides the recommendation. |
+| "Me pidieron describir la interacción, así que cito la pregunta y después explico qué haré si responde" | The quoted plain-text question is still the terminal interaction. Stop at its `?`; post-answer work belongs to the next turn. |
 | "El progreso está en los commits y en el informe" | Boxes + run-log rows are the persistence. Commits do not tell the next session what is parked and why. |
+| "La task parked ya fue procesada, así que marco `[x]`" | `[x]` means completed, never processed. Keep every `parked:*` task `[ ]`; its latest run-log row prevents redispatch until the user unblocks it. |
 | "Resuelvo lo de Redis yo mismo, es una decisión técnica" | A new external dependency is architectural ⇒ question. A renamed export is tactical ⇒ resolve. |
+| "El Map especificado limita peor con tres réplicas, así que aparco la task como arquitectónica" | The approach is explicit and implementable: execute the Map, record the per-replica limitation as tactical, and carry it into the deploy question. Only changing the approach by adding Redis is architectural. |
 | "`legacy/` es código trackeado, reversible con `git revert` ⇒ no es un stop" | Deletion is on the list by action, not by content. Reversible ≠ permitted. Inspect if you like — then park and ask. |
 | "La task es grande, mejor confirmo antes" | Size is not a stop. Split into a sub-batch and keep going. |
 
@@ -332,9 +369,12 @@ context thresholds, `backup-before-modify`, `db-backup`, `lint-and-validate`, `i
 - Dispatching a subagent without the runtime-resolved model — or with `fable`.
 - Executing in plan order without the tier table on screen.
 - Two questions in one turn/call; a question before runnable work is exhausted.
+- Any text after a plain-text question, including a recap or hypothetical post-answer steps.
 - Writing code while no plan file exists.
 - A task marked done with no `- [x]` and no run-log row.
+- A `parked:*` task marked `[x]`, or a resumed parked task dispatched again without an explicit user answer.
 - Adding a service, store or dependency the plan does not name, without a queued question.
+- Parking an implementable task because its explicitly specified approach is weaker than expected; keep it runnable and record the tactical limitation.
 - Inspecting a directory or table to decide whether deleting it "counts" as a stop.
 
 ## Quick reference

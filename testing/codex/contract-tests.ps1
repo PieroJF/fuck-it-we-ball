@@ -76,6 +76,7 @@ function Test-NormalizedAdapter {
         (Test-ExactString $Contract.tools.question_selection 'AskUserQuestion-if-callable-else-plain-text') -and
         (Test-ExactString $Contract.tools.question_formats.AskUserQuestion '2-4-options-recommended-first') -and
         (Test-ExactString $Contract.tools.question_formats.'plain-text' 'single-direct-no-option-list') -and
+        $Contract.tools.plain_text_terminal -is [bool] -and $Contract.tools.plain_text_terminal -and
         (Test-ExactString $Contract.tools.missing_agent 'park-needs-user') -and
         (Test-ExactString $Contract.tools.claude.agent 'Agent') -and
         (Test-ExactString $Contract.tools.claude.question 'AskUserQuestion') -and
@@ -83,6 +84,11 @@ function Test-NormalizedAdapter {
         (Test-ExactString $Contract.tools.claude.workflow_unit 'agent') -and
         $Contract.tools.claude.workflow_model_required -is [bool] -and
         $Contract.tools.claude.workflow_model_required -and
+        (Test-ExactString $Contract.tools.claude.agent_effort_field 'only-if-exposed') -and
+        $Contract.tools.claude.dispatch_effort_declaration_required -is [bool] -and
+        $Contract.tools.claude.dispatch_effort_declaration_required -and
+        $Contract.tools.claude.workflow_effort_required -is [bool] -and
+        $Contract.tools.claude.workflow_effort_required -and
         (Test-ExactString $Contract.tools.codex.agent 'spawn_agent') -and
         (Test-ExactString $Contract.tools.codex.question 'plain-text') -and
         (Test-ExactString $Contract.tools.codex.task_list 'only-if-exposed') -and
@@ -95,6 +101,13 @@ function Test-NormalizedAdapter {
         (Test-ExactString $Contract.models.codex.judgment 'gpt-5.6-sol') -and
         (Test-ExactString $Contract.models.codex.trivial 'gpt-5.6-luna') -and
         (Test-ExactString $Contract.models.effort 'xhigh') -and
+        (Test-ExactString $Contract.persistence.done_checkbox 'checked') -and
+        (Test-ExactString $Contract.persistence.parked_checkbox 'unchecked') -and
+        (Test-ExactString $Contract.persistence.resume_state 'latest-run-log') -and
+        (Test-ExactString $Contract.persistence.parked_redispatch 'only-after-user-unblocks') -and
+        (Test-ExactString $Contract.persistence.bookkeeping_scope 'one-task-per-commit') -and
+        (Test-ExactString $Contract.deviations.specified_approach_premise 'implement-tactical-note') -and
+        (Test-ExactString $Contract.deviations.new_dependency 'park-arch-deviation') -and
         $Contract.fallbacks.question_max_per_turn -is [long] -and
         $Contract.fallbacks.question_max_per_turn -eq 1 -and
         (Test-ExactString $Contract.fallbacks.workflow_unavailable 'SDD') -and
@@ -163,8 +176,9 @@ $goodFixture = @'
     "selection": "callable-agent-and-models",
     "question_selection": "AskUserQuestion-if-callable-else-plain-text",
     "question_formats": {"AskUserQuestion": "2-4-options-recommended-first", "plain-text": "single-direct-no-option-list"},
+    "plain_text_terminal": true,
     "missing_agent": "park-needs-user",
-    "claude": {"agent": "Agent", "question": "AskUserQuestion", "workflow": "Workflow", "workflow_unit": "agent", "workflow_model_required": true},
+    "claude": {"agent": "Agent", "question": "AskUserQuestion", "workflow": "Workflow", "workflow_unit": "agent", "workflow_model_required": true, "agent_effort_field": "only-if-exposed", "dispatch_effort_declaration_required": true, "workflow_effort_required": true},
     "codex": {"agent": "spawn_agent", "question": "plain-text", "task_list": "only-if-exposed", "fork_turns": "none", "reasoning_effort": "xhigh"}
   },
   "models": {
@@ -172,6 +186,8 @@ $goodFixture = @'
     "codex": {"implementation": "gpt-5.6-terra", "judgment": "gpt-5.6-sol", "trivial": "gpt-5.6-luna"},
     "effort": "xhigh"
   },
+  "persistence": {"done_checkbox": "checked", "parked_checkbox": "unchecked", "resume_state": "latest-run-log", "parked_redispatch": "only-after-user-unblocks", "bookkeeping_scope": "one-task-per-commit"},
+  "deviations": {"specified_approach_premise": "implement-tactical-note", "new_dependency": "park-arch-deviation"},
   "fallbacks": {
     "question_max_per_turn": 1,
     "workflow_unavailable": "SDD",
@@ -198,8 +214,18 @@ $negativeFork = $goodFixture | ConvertTo-Json -Depth 20 | ConvertFrom-Json -Dept
 $negativeFork.tools.codex.fork_turns = 'all'
 $negativeWorkflowUnit = $goodFixture | ConvertTo-Json -Depth 20 | ConvertFrom-Json -Depth 20
 $negativeWorkflowUnit.tools.claude.workflow_model_required = $false
+$negativeAgentEffort = $goodFixture | ConvertTo-Json -Depth 20 | ConvertFrom-Json -Depth 20
+$negativeAgentEffort.tools.claude.agent_effort_field = 'always-pass'
+$negativePersistence = $goodFixture | ConvertTo-Json -Depth 20 | ConvertFrom-Json -Depth 20
+$negativePersistence.persistence.parked_checkbox = 'checked'
+$negativeBookkeeping = $goodFixture | ConvertTo-Json -Depth 20 | ConvertFrom-Json -Depth 20
+$negativeBookkeeping.persistence.bookkeeping_scope = 'batch-parked-tasks'
+$negativeSpecifiedApproach = $goodFixture | ConvertTo-Json -Depth 20 | ConvertFrom-Json -Depth 20
+$negativeSpecifiedApproach.deviations.specified_approach_premise = 'park-arch-deviation'
 $negativePlainTextQuestion = $goodFixture | ConvertTo-Json -Depth 20 | ConvertFrom-Json -Depth 20
 $negativePlainTextQuestion.tools.question_formats.'plain-text' = '2-4-options'
+$negativePlainTextTerminal = $goodFixture | ConvertTo-Json -Depth 20 | ConvertFrom-Json -Depth 20
+$negativePlainTextTerminal.tools.plain_text_terminal = $false
 $negativeReviewer = $goodFixture | ConvertTo-Json -Depth 20 | ConvertFrom-Json -Depth 20
 $negativeReviewer.fallbacks.reviewer_unavailable = 'continue-inline'
 $negativeTypes = $goodFixture | ConvertTo-Json -Depth 20 | ConvertFrom-Json -Depth 20
@@ -215,7 +241,12 @@ $fixtureGate = (Test-NormalizedAdapter $goodFixture) -and
     -not (Test-NormalizedAdapter $negativeCase) -and
     -not (Test-NormalizedAdapter $negativeFork) -and
     -not (Test-NormalizedAdapter $negativeWorkflowUnit) -and
+    -not (Test-NormalizedAdapter $negativeAgentEffort) -and
+    -not (Test-NormalizedAdapter $negativePersistence) -and
+    -not (Test-NormalizedAdapter $negativeBookkeeping) -and
+    -not (Test-NormalizedAdapter $negativeSpecifiedApproach) -and
     -not (Test-NormalizedAdapter $negativePlainTextQuestion) -and
+    -not (Test-NormalizedAdapter $negativePlainTextTerminal) -and
     -not (Test-NormalizedAdapter $negativeReviewer) -and
     -not (Test-NormalizedAdapter $negativeTypes) -and
     (Test-GuardProse $guardFixture) -and
