@@ -1,16 +1,16 @@
 # Evidencia TDD — fuck-it-we-ball
 
-La evidencia Claude histórica de 2026-08-28 permanece en `raw/`, `triggers-result.md` y `smoke-test.md`. El harness Codex no la reescribe: copia scripts y escenarios a un directorio temporal y verifica el fingerprint antes y después.
+La evidencia Claude histórica de 2026-08-28 permanece intacta en `raw/`, `triggers-result.md` y `smoke-test.md`. El informe vigente es [`codex/green-findings.md`](codex/green-findings.md), actualizado el 2026-09-06 con versiones, hashes, fallos conservados y verificaciones dirigidas.
 
-## Runtime adapter Codex — 2026-09-03
+| Cobertura | Resultado verificado |
+|---|---|
+| Contrato estático | 11/11 PASS; frontmatter y paridad del skill incluidos. |
+| Self-test del runner | PASS: límites de tiempo también con stdout cerrado y stdin bloqueado; normalización de rutas Windows; tipos JSON; columnas/estados de persistencia; límites de ejecución del smoke. |
+| Codex | Pregunta y Workflow PASS; routing de autenticación PASS con el skill final. Smoke: cuatro commits reales, canaries preservados y tests 2/2; artefactos reevaluados con el parser final. |
+| Claude | S1–S4 PASS; siete triggers medibles tienen evidencia PASS tras un retry dirigido del único resultado inicialmente vacío. Slash-command aislado UNMEASURABLE. |
+| Cambio de precedencia de modelos | Codex auth→Sol y Claude auth→Opus PASS; Claude mantiene sum/Map→Sonnet. |
 
-| Artefacto | Cobertura | Resultado final |
-|---|---|---|
-| `codex/contract-tests.ps1` | contrato runtime, preguntas terminales, persistencia/resume, effort, desviaciones, precedencia deploy y paridad instalada | 11/11 PASS |
-| `codex/run-probes.ps1 -SelfTest` | temporales propios, entorno allowlist, JSONL, kill-tree, JSON estructural, scorers con negativos, gate de hashes y Node restringido | PASS |
-| `codex/run-probes.ps1 -Mode Codex -KeepArtifacts` | pregunta, routing, Workflow→SDD, persistencia, hard stops y smoke | question/routing/workflow/smoke: 4/4 PASS; tests 2/2 |
-| `codex/run-probes.ps1 -Mode Claude -KeepArtifacts` | S1–S4 ×1 + triggers, timeout por brazo y scoring semántico | S1/S2/S3/S4/triggers PASS; 0 timeouts; histórica preservada |
-| `codex/green-findings.md` | evidencia exacta, hashes, frontera de autenticación y limitaciones | PASS documentado sin sobreafirmar aislamiento |
+No se presenta una matriz antigua como validación de una versión posterior: el informe distingue cada snapshot y conserva las corridas fallidas. Los probes de routing son diagnósticos prospectivos; no acreditan argumentos reales de spawn ni la identidad del modelo proveedor.
 
 ```powershell
 pwsh -NoProfile -File testing/codex/contract-tests.ps1
@@ -19,12 +19,6 @@ pwsh -NoProfile -File testing/codex/run-probes.ps1 -Mode Codex -TimeoutSeconds 9
 pwsh -NoProfile -File testing/codex/run-probes.ps1 -Mode Claude -TimeoutSeconds 900 -KeepArtifacts
 ```
 
-Evidencia final Codex: `C:\Users\Piero\AppData\Local\Temp\fiwb-codex-probes-cbdbf5e22fb64c6597a2c7693dab36f8`.
+El runner crea un hijo GUID propio bajo `%TEMP%`; no acepta destinos arbitrarios. `-KeepArtifacts` conserva la evidencia. El self-test requiere PowerShell, Git, Codex, Node y Python.
 
-Evidencia final Claude: `C:\Users\Piero\AppData\Local\Temp\fiwb-codex-probes-562c8100a587417c858f73251c5926c6`.
-
-El runner no acepta directorio de salida arbitrario. Siempre crea un hijo GUID nuevo bajo `%TEMP%`; `-KeepArtifacts` lo conserva y, sin ese switch, solo elimina el hijo cuyo marcador de propiedad valida.
-
-La CLI necesita el `CODEX_HOME` real para autenticarse. Solo el proceso padre lo recibe. Los shells del modelo usan `inherit="none"`, allowlist explícita y red deshabilitada en el sandbox; las fixtures no contienen credenciales ni remotes. Esto reduce la superficie, pero no equivale a un contenedor o identidad de SO independiente.
-
-El diagnóstico Codex de routing/Workflow exige un único bloque `FIWB_PROBE_JSON` y valida esquema, propiedades, orden, roles, modelos, `xhigh`, `fork_turns`, fallback y cero dispatches. El smoke se decide por estado observable: checkboxes/run-log, commits, rama/diff, hashes, canaries y pregunta terminal. Claude mantiene scoring textual con controles positivos y negativos; el slash-command aislado sigue `UNMEASURABLE`, aunque los siete triggers medibles pasan.
+La autenticación permanece en el proceso padre; las fixtures no contienen copias de credenciales ni remotes. Los shells del modelo reciben una allowlist sin secretos y los permisos del smoke protegen sus canaries. La auditoría de comandos/rutas es observacional y no equivale a aislamiento independiente de SO/contenedor. Véanse las limitaciones completas en el informe.

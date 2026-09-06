@@ -119,12 +119,14 @@ git commit -m "test(fiwb): add Codex runtime contract RED"
 - Consumes: adapted skill and disposable fixture repositories.
 - Produces: fresh Codex evidence plus Claude regression evidence.
 
-- [ ] **Step 1: Run Codex probes in an isolated temporary home/workspace**
-- [ ] **Step 2: Manually score tool/model routing, questions, hard stops, persistence, and Workflow fallback**
-- [ ] **Step 3: Run one disposable end-to-end smoke test with no production or real destructive action**
-- [ ] **Step 4: Rerun the existing Claude trigger/scenario regression harness**
-- [ ] **Step 5: Run final independent review, fix confirmed findings, and record exact results**
+- [x] **Step 1: Run Codex probes in an isolated temporary home/workspace**
+- [x] **Step 2: Manually score tool/model routing, questions, hard stops, persistence, and Workflow fallback**
+- [x] **Step 3: Run one disposable end-to-end smoke test with no production or real destructive action**
+- [x] **Step 4: Rerun the existing Claude trigger/scenario regression harness**
+- [x] **Step 5: Run final independent review, fix confirmed findings, and record exact results**
 - [ ] **Step 6: Commit each verified task separately and push directly only after every hard-stop guard is satisfied**
+
+2026-09-06 evidence: `testing/codex/green-findings.md` records every snapshot, original failure, targeted recheck, and checksum. Final authentication routing passes on Codex and Claude; ordinary Claude sum/Map tasks remain Sonnet. The real smoke's four commits and 2/2 tests pass final artifact re-evaluation. Claude S1–S4 pass; one initially empty trigger response passes a targeted retry with the final capture helper. Requested provider-model execution remains unmeasurable in the diagnostic harness. Two independent-review findings (process deadlines and Windows path separators) are fixed and independently rechecked. Final independent review: APPROVE, zero Critical/Important/Minor findings; local `review-result.md` SHA-256 `7761EAF8FDD45F9B70A4743AB8D63CC9DABDE234D547DBA48695AB16E11F385B`. Direct publication remains tracked by Step 6.
 
 ## FIWB run-log
 

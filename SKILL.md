@@ -226,7 +226,10 @@ tool is exposed.
 | trivial | `haiku` | `gpt-5.6-luna` | literal transcription (the plan carries the full code), one-liners, listings/greps |
 | forbidden unless explicitly ordered | `fable` | `fable` | **never** in a subagent or workflow unit, in any role (implementer, reviewer, judge), unless the user explicitly orders it in this run |
 
-Implementation vs judgment doubt ⇒ implementation. Effort `xhigh` wherever the tool exposes it. The main session
+Explicit judgment categories take precedence over the implementation tie-break. Security and authentication/
+authorization boundary work remains judgment, including implementation of an architecture selected earlier;
+having a complete spec does not turn that boundary work into routine implementation. Use the implementation
+tie-break only when no explicit judgment category applies. Effort `xhigh` wherever the tool exposes it. The main session
 running an INLINE task is not a dispatch; every subagent is.
 
 ### Verify and review (execution-rules 2, 3, 5 stay in force)
