@@ -124,11 +124,13 @@ git commit -m "test(fiwb): add Codex runtime contract RED"
 - [x] **Step 3: Run one disposable end-to-end smoke test with no production or real destructive action**
 - [x] **Step 4: Rerun the existing Claude trigger/scenario regression harness**
 - [x] **Step 5: Run final independent review, fix confirmed findings, and record exact results**
-- [ ] **Step 6: Commit each verified task separately and push directly only after every hard-stop guard is satisfied**
+- [x] **Step 6: Commit each verified task separately and push directly only after every hard-stop guard is satisfied**
 
 2026-09-06 evidence: `testing/codex/green-findings.md` records every snapshot, original failure, targeted recheck, and checksum. Final authentication routing passes on Codex and Claude; ordinary Claude sum/Map tasks remain Sonnet. The real smoke's four commits and 2/2 tests pass final artifact re-evaluation. Claude S1–S4 pass; one initially empty trigger response passes a targeted retry with the final capture helper. Requested provider-model execution remains unmeasurable in the diagnostic harness. Two independent-review findings (process deadlines and Windows path separators) are fixed and independently rechecked. Final independent review: APPROVE, zero Critical/Important/Minor findings; local `review-result.md` SHA-256 `7761EAF8FDD45F9B70A4743AB8D63CC9DABDE234D547DBA48695AB16E11F385B`. Direct publication remains tracked by Step 6.
 
 ## FIWB run-log
+
+2026-09-09 closure: implementation `2459146f75fa1078060720a692ca7563895cf93f` published directly to `origin/main` and verified by `git ls-remote`. Both installed runtime discovery checks passed; the previously usage-limited Codex check passed its targeted retry. Canonical/Claude junction parity, contract 11/11, official validator and clean Git state were verified. See `testing/codex/installed-discovery-2026-09-09.md` for measured scope and publication evidence. T5 is complete.
 
 | T | tier | modo | modelo | commit | estado | desviaciones / pregunta |
 |---|---:|---|---|---|---|---|
