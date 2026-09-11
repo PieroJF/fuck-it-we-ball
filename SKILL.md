@@ -79,9 +79,9 @@ The JSON contract below is normative: use its exact identifiers and fallbacks; n
       "trivial": "haiku"
     },
     "codex": {
-      "implementation": "gpt-5.6-terra",
-      "judgment": "gpt-5.6-sol",
-      "trivial": "gpt-5.6-luna"
+      "implementation": "gpt-5.6-sol",
+      "judgment": "gpt-6-astra",
+      "trivial": "gpt-5.6-terra"
     },
     "effort": "xhigh"
   },
@@ -221,9 +221,9 @@ tool is exposed.
 
 | Role | Claude | Codex | Use for |
 |---|---|---|---|
-| implementation | `sonnet` | `gpt-5.6-terra` | implementing from a complete spec, tests, mechanical multi-file edits, reviews of small/medium diffs, single-task docs, re-reviews |
-| judgment | `opus` | `gpt-5.6-sol` | design/judgment (architecture, contracts), non-trivial debugging, security/authz, cross-module integration, final branch review, fix-loop rounds 4–5, tier-1 tasks with sev high whose spec leaves design decisions open (a tier-1 one-liner with a complete spec still uses implementation) |
-| trivial | `haiku` | `gpt-5.6-luna` | literal transcription (the plan carries the full code), one-liners, listings/greps |
+| implementation | `sonnet` | `gpt-5.6-sol` | implementing from a complete spec, tests, mechanical multi-file edits, reviews of small/medium diffs, single-task docs, re-reviews |
+| judgment | `opus` | `gpt-6-astra` | design/judgment (architecture, contracts), non-trivial debugging, security/authz, cross-module integration, final branch review, fix-loop rounds 4–5, tier-1 tasks with sev high whose spec leaves design decisions open (a tier-1 one-liner with a complete spec still uses implementation) |
+| trivial | `haiku` | `gpt-5.6-terra` | literal transcription (the plan carries the full code), one-liners, listings/greps |
 | forbidden unless explicitly ordered | `fable` | `fable` | **never** in a subagent or workflow unit, in any role (implementer, reviewer, judge), unless the user explicitly orders it in this run |
 
 Explicit judgment categories take precedence over the implementation tie-break. Security and authentication/
