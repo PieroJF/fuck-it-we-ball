@@ -69,7 +69,7 @@ The JSON contract below is normative: use its exact identifiers and fallbacks; n
       "question": "plain-text",
       "task_list": "only-if-exposed",
       "fork_turns": "none",
-      "reasoning_effort": "xhigh"
+      "reasoning_effort": "high"
     }
   },
   "models": {
@@ -124,7 +124,7 @@ and `xhigh` effort. Call `Agent(model: ...)` and add an `effort` field only if t
 field; never invent an unsupported Agent parameter. The declaration remains mandatory even when the call has no
 effort field.
 A Codex dispatch calls `spawn_agent` with the resolved `model`,
-`reasoning_effort: "xhigh"`, and `fork_turns: "none"`; its message must therefore carry all task context. Every
+`reasoning_effort: "high"` (the TOML value; never `max`/`ultra`), and `fork_turns: "none"`; its message must therefore carry all task context. Every
 Claude Workflow unit calls `agent(p, {model, effort: 'xhigh'})`; Workflow's effort field is always mandatory.
 Numeric context thresholds apply only when the
 runtime reports measured usage; without telemetry, never estimate a percentage—persist after every task and hand
@@ -229,7 +229,11 @@ tool is exposed.
 Explicit judgment categories take precedence over the implementation tie-break. Security and authentication/
 authorization boundary work remains judgment, including implementation of an architecture selected earlier;
 having a complete spec does not turn that boundary work into routine implementation. Use the implementation
-tie-break only when no explicit judgment category applies. Effort `xhigh` wherever the tool exposes it. The main session
+tie-break only when no explicit judgment category applies. Effort `xhigh` wherever the tool exposes it.
+Exception, Codex `exec` launched from a Claude session: do not declare effort or model; set
+`CODEX_TASK="kind=…;scope=…;risk=…;iter=…"` on every dispatch (all four fields) and let the codex-env
+selector choose; never pass `-m` or `model_reasoning_effort` above the table; `max`/`ultra` only via
+`codex-budget grant` from a terminal. The main session
 running an INLINE task is not a dispatch; every subagent is.
 
 ### Verify and review (execution-rules 2, 3, 5 stay in force)
