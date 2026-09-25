@@ -80,6 +80,12 @@ git clone https://github.com/PieroJF/fuck-it-we-ball.git ~/.claude/skills/fuck-i
 git clone https://github.com/PieroJF/fuck-it-we-ball.git ~/.agents/skills/fuck-it-we-ball
 ```
 
+**Fork `/fuck-it-we-ballINC`** (en desarrollo) — vive en [`fuck-it-we-ballINC/`](fuck-it-we-ballINC/SKILL.md). Solo se activa con la invocación explícita `/fuck-it-we-ballINC` (no con la frase "fuck it we ball"). Instálala enlazando esa carpeta:
+
+```bash
+ln -s ~/.claude/skills/fuck-it-we-ball/fuck-it-we-ballINC ~/.claude/skills/fuck-it-we-ballINC
+```
+
 **Dependencias** (se invocan por nombre desde la skill):
 
 - Plugin [superpowers](https://github.com/obra/superpowers) — `subagent-driven-development`, `writing-plans`, `systematic-debugging`, `verification-before-completion`.
