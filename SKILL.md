@@ -69,7 +69,7 @@ The JSON contract below is normative: use its exact identifiers and fallbacks; n
       "question": "plain-text",
       "task_list": "only-if-exposed",
       "fork_turns": "none",
-      "reasoning_effort": "high"
+      "reasoning_effort": "xhigh"
     }
   },
   "models": {
@@ -124,7 +124,7 @@ and `xhigh` effort. Call `Agent(model: ...)` and add an `effort` field only if t
 field; never invent an unsupported Agent parameter. The declaration remains mandatory even when the call has no
 effort field.
 A Codex dispatch calls `spawn_agent` with the resolved `model`,
-`reasoning_effort: "high"` (the TOML value; never `max`/`ultra`), and `fork_turns: "none"`; its message must therefore carry all task context. Every
+`reasoning_effort: "xhigh"` (the TOML value; never `max`/`ultra`), and `fork_turns: "none"`; its message must therefore carry all task context. Every
 Claude Workflow unit calls `agent(p, {model, effort: 'xhigh'})`; Workflow's effort field is always mandatory.
 Numeric context thresholds apply only when the
 runtime reports measured usage; without telemetry, never estimate a percentage—persist after every task and hand
@@ -229,10 +229,10 @@ tool is exposed.
 Explicit judgment categories take precedence over the implementation tie-break. Security and authentication/
 authorization boundary work remains judgment, including implementation of an architecture selected earlier;
 having a complete spec does not turn that boundary work into routine implementation. Use the implementation
-tie-break only when no explicit judgment category applies. Effort `xhigh` wherever the tool exposes it.
+tie-break only when no explicit judgment category applies. Effort `xhigh` wherever the tool exposes it. Codex identifiers name families: when the runtime exposes a newer slug of the same family (`gpt-<version>-astra|sol|terra`), use the newest; the listed slugs are the 2026-10-03 floor.
 Exception, Codex `exec` launched from a Claude session: do not declare effort or model; set
 `CODEX_TASK="kind=…;scope=…;risk=…;iter=…"` on every dispatch (all four fields) and let the codex-env
-selector choose; never pass `-m` or `model_reasoning_effort` above the table; `max`/`ultra` only via
+selector choose (family by class, newest catalog slug, effort always `xhigh`); never pass `-m` or `model_reasoning_effort` (both are clamped to the selection); `max`/`ultra` only via
 `codex-budget grant` from a terminal. The main session
 running an INLINE task is not a dispatch; every subagent is.
 
