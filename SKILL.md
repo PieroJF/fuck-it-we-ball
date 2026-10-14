@@ -257,7 +257,8 @@ Merge and push happen only at Close and target the captured base branch.
    remain `- [ ]` until a user answer unblocks it and the task subsequently completes. Parking never checks a box.
 2. Append one row to `## FIWB run-log` at the end of that same file (create the section on the first task):
    `| T | tier | modo | modelo | commit | estado | desviaciones / pregunta |` — estado ∈ `done` ·
-   `parked: hard-stop|needs-user|fix-loop-exhausted|blocked-by-parked|arch-deviation`.
+   `parked: hard-stop|needs-user|fix-loop-exhausted|blocked-by-parked|arch-deviation` ·
+   `partial: context-ceiling` (only from the 80 % ceiling; the task stays `- [ ]` and is resumed first).
 3. One chat line: `▶ T3 [tier 1] SDD/<resolved-model> → done · commit a1b2c3d · desviaciones: 0` (or `→ parked: <motivo>`).
 
 Commits and a final report are not persistence. On resume, the last run-log row for each task governs its state;
@@ -320,11 +321,19 @@ they do not replace the queued question.
 
 ## Context
 
-With measured runtime telemetry: <70 % continue; 70–80 % emit one warning line, do not stop, and prefer
-SDD/WORKFLOW for the rest; ≥80 % start no new task, commit what is verified, invoke the `handoff` skill (section
-with run-log + "Siguiente paso concreto"), and end the turn. Without measured telemetry, never estimate context
-usage: rely on per-task persistence and hand off when the host signals compaction or a context limit. Resume with
-the invocation named for the active runtime in the contract.
+With measured runtime telemetry (the `[context-line] Contexto medido: …` block, per prompt and
+mid-turn): <45 % continue; ≥45 % emit one warning line, prefer SDD/WORKFLOW for the rest and start
+inline no task that will foreseeably not reach its bookkeeping commit before 55 %; ≥55 % start no
+new task, finish the current task through its bookkeeping commit (the safepoint), invoke the
+`handoff` skill (section with run-log + "Siguiente paso concreto"), and end the turn; ≥80 %
+(ceiling) stop the current task where it is: leave files consistent, on a work branch commit
+`wip(safepoint): T<n> parcial al 80 % de contexto` (never on main/master), append the run-log row
+`partial: context-ceiling` with what remains in the deviations column, then invoke `handoff` in this
+turn. On resume, a task whose latest run-log row is `partial: context-ceiling` keeps `- [ ]`, is
+runnable and goes first. Agents or workflows in flight are waited for and their results persisted
+before the handoff; none new is launched. Without measured telemetry, never estimate context usage:
+rely on per-task persistence and hand off when the host signals compaction or a context limit.
+Resume with the invocation named for the active runtime in the contract.
 
 ## Close
 
@@ -368,6 +377,7 @@ context thresholds, `backup-before-modify`, `db-backup`, `lint-and-validate`, `i
 | "El Map especificado limita peor con tres réplicas, así que aparco la task como arquitectónica" | The approach is explicit and implementable: execute the Map, record the per-replica limitation as tactical, and carry it into the deploy question. Only changing the approach by adding Redis is architectural. |
 | "`legacy/` es código trackeado, reversible con `git revert` ⇒ no es un stop" | Deletion is on the list by action, not by content. Reversible ≠ permitted. Inspect if you like — then park and ask. |
 | "La task es grande, mejor confirmo antes" | Size is not a stop. Split into a sub-batch and keep going. |
+| "Llegué al 55 % pero la siguiente task es de dos líneas" | At ≥55 % no new task opens, whatever its size. Finish the current one, hand off. |
 
 ## Red flags — STOP and re-read Stops
 
@@ -389,7 +399,7 @@ context thresholds, `backup-before-modify`, `db-backup`, `lint-and-validate`, `i
 ```
 Phase 0  arg | session plan | plan file | handoff | task list  ──none──▶ ONE permission question → forging → writing-plans
 Phase 1  tags + inference → tiers (Kahn + inherited urgency) → Spanish table → GO only if plan born here
-Phase 2  pick → mode table → model table → execute → verify+review → commit → box + run-log row + ▶ line → context
+Phase 2  pick → mode table → model table → execute → verify+review → commit → box + run-log row + ▶ line → context (45/55/80)
 Stops    hard-stop list · needs-user · architectural deviation  ⇒ park + queue ONE question (asked at Close)
 Close    judgment review → deploy guard → ff-merge + push → questions 1×turn/call by tier → recap (es) → handoff section
 ```
