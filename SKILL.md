@@ -250,6 +250,10 @@ Before creating or switching branches, capture `BASE_BRANCH` and `BASE_SHA` from
 per verified task (conventional message). On `main`/`master` ⇒ create `fiwb/<plan-slug>` first; on a feature branch
 ⇒ use it. `backup-before-modify` (controles / pag web) and `db-backup` run before the first change they cover.
 Merge and push happen only at Close and target the captured base branch.
+On resume (the source already has a `## FIWB run-log`, or is a handoff section written by a FIWB run), the
+`BASE_BRANCH`/`BASE_SHA` recorded in the run-log or handoff win over the current checkout; capture from the checkout
+only on a fresh run. A resumed run with no recorded base does not guess: it queues the base as a question, and Close
+does not merge until it is answered.
 
 ### Persist (after EVERY task, before picking the next)
 
@@ -259,6 +263,8 @@ Merge and push happen only at Close and target the captured base branch.
    `| T | tier | modo | modelo | commit | estado | desviaciones / pregunta |` — estado ∈ `done` ·
    `parked: hard-stop|needs-user|fix-loop-exhausted|blocked-by-parked|arch-deviation` ·
    `partial: context-ceiling` (only from the 80 % ceiling; the task stays `- [ ]` and is resumed first).
+   The section's first row opens its last cell with `base: <BASE_BRANCH>@<BASE_SHA>` (the run's recorded base);
+   rows are never edited, so it stays there.
 3. One chat line: `▶ T3 [tier 1] SDD/<resolved-model> → done · commit a1b2c3d · desviaciones: 0` (or `→ parked: <motivo>`).
 
 Commits and a final report are not persistence. On resume, the last run-log row for each task governs its state;
@@ -325,15 +331,17 @@ With measured runtime telemetry (the `[context-line] Contexto medido: …` block
 mid-turn): <45 % continue; ≥45 % emit one warning line, prefer SDD/WORKFLOW for the rest and start
 inline no task that will foreseeably not reach its bookkeeping commit before 55 %; ≥55 % start no
 new task, finish the current task through its bookkeeping commit (the safepoint), invoke the
-`handoff` skill (section with run-log + "Siguiente paso concreto"), and end the turn; ≥80 %
-(ceiling) stop the current task where it is: leave files consistent, on a work branch commit
-`wip(safepoint): T<n> parcial al 80 % de contexto` (never on main/master), append the run-log row
-`partial: context-ceiling` with what remains in the deviations column, then invoke `handoff` in this
-turn. On resume, a task whose latest run-log row is `partial: context-ceiling` keeps `- [ ]`, is
-runnable and goes first. Agents or workflows in flight are waited for and their results persisted
-before the handoff; none new is launched. Without measured telemetry, never estimate context usage:
-rely on per-task persistence and hand off when the host signals compaction or a context limit.
-Resume with the invocation named for the active runtime in the contract.
+`handoff` skill (section with run-log, `BASE_BRANCH`/`BASE_SHA` + "Siguiente paso concreto"), and
+end the turn; ≥80 % (ceiling) stop the current task where it is: leave files consistent, on a work
+branch commit `wip(safepoint): T<n> parcial al 80 % de contexto` (never on main/master), append the
+run-log row `partial: context-ceiling` with what remains in the deviations column, then invoke
+`handoff` in this turn with the same section contents. On resume, a task whose latest run-log row is
+`partial: context-ceiling` keeps `- [ ]`, is runnable and goes first. Agents or workflows in flight
+are waited for and their results persisted before the handoff; none new is launched; if the ceiling
+arrives first, hand off with the run ID and "Siguiente paso: workflow-rescue". Without measured
+telemetry, never estimate context usage: rely on per-task persistence and hand off when the host
+signals compaction or a context limit. Resume with the invocation named for the active runtime in
+the contract.
 
 ## Close
 

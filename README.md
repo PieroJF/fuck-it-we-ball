@@ -84,7 +84,7 @@ git clone https://github.com/PieroJF/fuck-it-we-ball.git ~/.agents/skills/fuck-i
 
 - Plugin [superpowers](https://github.com/obra/superpowers) — `subagent-driven-development`, `writing-plans`, `systematic-debugging`, `verification-before-completion`.
 - [`forging`](https://github.com/PieroJF/forging-skill) (brainstorming + grilling) — solo cuando no hay plan.
-- [`handoff`](https://github.com/PieroJF/claude-handoff-skill) — opcional; fuente de tasks y cierre al 80 % de contexto.
+- [`handoff`](https://github.com/PieroJF/claude-handoff-skill) — opcional; fuente de tasks y cierre por contexto (45/55/80 %: aviso al 45 %, handoff en el primer safepoint desde el 55 %, techo forzado al 80 %).
 - Opcionales del autor: `workflow-resilience`, `backup-before-modify`, `db-backup`, `goal` (solo se citan; si no existen, la skill lo dice y sigue).
 
 **Cláusula en `~/.claude/CLAUDE.md`** — necesaria si tienes reglas que exigen OK entre fases (p. ej. `execution-rules`, `phased-approval`): CLAUDE.md manda sobre las skills, así que la anulación tiene que vivir ahí. Texto exacto en [`DESIGN.md` §17](DESIGN.md).
