@@ -246,11 +246,13 @@ on the judgment model.
 
 ### Git
 
-Before creating or switching branches, capture `BASE_BRANCH` and `BASE_SHA` from the current checkout. One commit
+On a fresh run, before creating or switching branches, capture `BASE_BRANCH` and `BASE_SHA` from the current
+checkout (on resume, the recorded base below wins). One commit
 per verified task (conventional message). On `main`/`master` ⇒ create `fiwb/<plan-slug>` first; on a feature branch
 ⇒ use it. `backup-before-modify` (controles / pag web) and `db-backup` run before the first change they cover.
 Merge and push happen only at Close and target the captured base branch.
-On resume (the source already has a `## FIWB run-log`, or is a handoff section written by a FIWB run), the
+On resume (the source already has a `## FIWB run-log`, or is a handoff section written by a FIWB run,
+recognisable by its `BASE_BRANCH`/`BASE_SHA` lines), the
 `BASE_BRANCH`/`BASE_SHA` recorded in the run-log or handoff win over the current checkout; capture from the checkout
 only on a fresh run. A resumed run with no recorded base does not guess: it queues the base as a question, and Close
 does not merge until it is answered.
@@ -263,7 +265,9 @@ does not merge until it is answered.
    `| T | tier | modo | modelo | commit | estado | desviaciones / pregunta |` — estado ∈ `done` ·
    `parked: hard-stop|needs-user|fix-loop-exhausted|blocked-by-parked|arch-deviation` ·
    `partial: context-ceiling` (only from the 80 % ceiling; the task stays `- [ ]` and is resumed first).
-   The section's first row opens its last cell with `base: <BASE_BRANCH>@<BASE_SHA>` (the run's recorded base);
+   The section's first row opens its last cell with `base: <BASE_BRANCH>@<BASE_SHA>` (one `repo branch@sha` entry
+   per repository, `;`-separated, when the run spans several), followed by ` · ` before any deviation or question
+   text (the run's recorded base);
    rows are never edited, so it stays there.
 3. One chat line: `▶ T3 [tier 1] SDD/<resolved-model> → done · commit a1b2c3d · desviaciones: 0` (or `→ parked: <motivo>`).
 
@@ -347,7 +351,8 @@ the contract.
 
 1. Final whole-branch review on the judgment model + fix-loop. 2. No CRITICAL/HIGH open ⇒ fast-forward merge into the origin
 branch + direct push (solo dev, never a PR); otherwise stay on the branch and say so. 3. Queued questions, one per
-call, by tier; an answer that unblocks tasks ⇒ run them now, repeat from 1. 4. Recap in Spanish: done/parked,
+call, by tier; an answer that unblocks tasks ⇒ run them now, repeat from 1; an answer that supplies the run
+base ⇒ do step 2 now against that base. 4. Recap in Spanish: done/parked,
 commits, deviations, mode/model per task, dispatch count. 5. Update the handoff section with what stayed parked.
 Never an automatic deploy — a deploy task is a queued question, always.
 
