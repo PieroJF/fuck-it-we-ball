@@ -232,8 +232,7 @@ having a complete spec does not turn that boundary work into routine implementat
 tie-break only when no explicit judgment category applies. Effort `xhigh` wherever the tool exposes it. Codex identifiers name families: when the runtime exposes a newer slug of the same family (`gpt-<version>-astra|sol|terra`), use the newest; the listed slugs are the 2026-10-03 floor.
 Exception, Codex `exec` launched from a Claude session: do not declare effort or model; set
 `CODEX_TASK="kind=…;scope=…;risk=…;iter=…"` on every dispatch (all four fields) and let the codex-env
-selector choose (family by class, newest catalog slug, effort always `xhigh`); never pass `-m` or `model_reasoning_effort` (both are clamped to the selection); `max`/`ultra` only via
-`codex-budget grant` from a terminal. The main session
+selector choose (family by class, newest catalog slug, effort `xhigh` by default); never pass `-m` (clamped to the selection); `max`/`ultra` only under an active grant from Piero (`codex-budget grant --effort max|ultra`, terminal): the grant is a permission, not an order, so the controller asks for it per dispatch with `-c 'model_reasoning_effort="ultra"'` (or `"max"`), only for astra-class work (design, security, review with scope l or risk high, fix with iter >= 4) or an `xhigh` run of the same task that fell short, never for impl/trivial/explore; without a covering grant the shim clamps to what is covered with a WARN; a `--force` grant applies to every dispatch; check `codex-budget status --line` (`grant ultra ×N`, `!` = force) before asking. The main session
 running an INLINE task is not a dispatch; every subagent is.
 
 ### Verify and review (execution-rules 2, 3, 5 stay in force)
